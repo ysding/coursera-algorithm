@@ -8,16 +8,15 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 public class Deque<Item> implements Iterable<Item> {
+    private Node head;
+    private Node tail;
+    private int length;
 
     private class Node {
         private Item item;
         private Node next;
         private Node pre;
     }
-
-    private Node head;
-    private Node tail;
-    private int length;
 
     public Deque()                           // construct an empty deque
     {
@@ -49,6 +48,7 @@ public class Deque<Item> implements Iterable<Item> {
         }
         else {
             head.pre = node;
+            node.next = head;
             head = node;
         }
         length += 1;
@@ -67,6 +67,7 @@ public class Deque<Item> implements Iterable<Item> {
         }
         else {
             tail.next = node;
+            node.pre = tail;
             tail = node;
         }
         length += 1;
@@ -79,8 +80,12 @@ public class Deque<Item> implements Iterable<Item> {
         }
         Item item = head.item;
         head = head.next;
+
         if (head == null) {
             tail = null;
+        }
+        else {
+            head.pre = null;
         }
         length -= 1;
         return item;
@@ -95,6 +100,9 @@ public class Deque<Item> implements Iterable<Item> {
         tail = tail.pre;
         if (tail == null) {
             head = null;
+        }
+        else {
+            tail.next = null;
         }
         length -= 1;
         return item;
@@ -126,6 +134,11 @@ public class Deque<Item> implements Iterable<Item> {
 
     public static void main(String[] args)   // unit testing (optional)
     {
-
+        Deque<Integer> deque = new Deque<Integer>();
+        deque.addFirst(1);
+        deque.isEmpty();
+        deque.addFirst(3);
+        deque.removeFirst();
+        deque.removeFirst();
     }
 }

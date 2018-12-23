@@ -72,13 +72,15 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
 
     private class ArrayIterator implements Iterator<Item> {
         private int i;
+        private Item[] tmp;
 
         public ArrayIterator() {
-            i = n - 1;
+            tmp = array.clone();
+            i = n;
         }
 
         public boolean hasNext() {
-            return i >= 0;
+            return i > 0;
         }
 
         public void remove() {
@@ -87,7 +89,12 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
 
         public Item next() {
             if (!hasNext()) throw new NoSuchElementException();
-            return array[i--];
+            int t = StdRandom.uniform(i);
+            Item item = tmp[t];
+            tmp[t] = tmp[i - 1];
+            tmp[i - 1] = null;
+            i -= 1;
+            return item;
         }
     }
 
