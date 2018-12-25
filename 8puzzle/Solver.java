@@ -1,7 +1,7 @@
 /* *****************************************************************************
- *  Name:
- *  Date:
- *  Description:
+ *  Name: Yusheng Ding
+ *  Date: 12/25/2018
+ *  Description: The Solver class to find a path to Goal Board.
  **************************************************************************** */
 
 import edu.princeton.cs.algs4.In;
@@ -39,7 +39,6 @@ public class Solver {
         if (initial == null) throw new java.lang.IllegalArgumentException();
         MinPQ<Node> pq = new MinPQ<>();
         MinPQ<Node> twinPq = new MinPQ<>();
-
         pq.insert(new Node(initial, null, 0, false));
         twinPq.insert(new Node(initial.twin(), null, 0, true));
         Node solveNode = null;

@@ -1,7 +1,7 @@
 /* *****************************************************************************
- *  Name:
- *  Date:
- *  Description:
+ *  Name: Yusheng Ding
+ *  Date: 12/25/2018
+ *  Description: The Board class
  **************************************************************************** */
 
 import edu.princeton.cs.algs4.Stack;
