@@ -16,11 +16,11 @@ public class KdTree {
         private Node rightTree;
         private RectHV rect;
 
-        public Node(Point2D p) {
+        public Node(Point2D p, RectHV rect) {
             this.p = p;
             leftTree = null;
             rightTree = null;
-            rect = new RectHV(p.x(), p.y(), p.x(), p.y());
+            this.rect = rect;
         }
 
         public void updateRect(RectHV that) {
@@ -30,12 +30,12 @@ public class KdTree {
                                    Math.max(rect.ymax(), that.ymax()));
         }
 
-        public boolean less(Node that, boolean horizontal) {
+        public boolean lessOrEqual(Point2D that, boolean horizontal) {
             if (horizontal) {
-                return this.p.y() - that.p.y() < 0;
+                return this.p.y() - that.y() <= 0;
             }
             else {
-                return this.p.x() - that.p.x() < 0;
+                return this.p.x() - that.x() <= 0;
             }
         }
     }
@@ -61,22 +61,35 @@ public class KdTree {
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
         if (p == null) throw new IllegalArgumentException();
-        root = insert(root, new Node(p), false);
+        root = insert(root, p, 0, 0, 1, 1, false);
     }
 
-    private Node insert(Node tmpRoot, Node node, boolean horizontal) {
+    private Node insert(Node tmpRoot, Point2D p, double xmin, double ymin, double xmax, double ymax,
+                        boolean horizontal) {
         if (tmpRoot == null) {
             size += 1;
-            return node;
+            return new Node(p, new RectHV(xmin, ymin, xmax, ymax));
         }
-        if (tmpRoot.p.equals(node.p)) return tmpRoot;
-        if (node.less(tmpRoot, horizontal)) {
-            tmpRoot.leftTree = insert(tmpRoot.leftTree, node, !horizontal);
-            tmpRoot.updateRect(tmpRoot.leftTree.rect);
+        if (tmpRoot.p.equals(p)) return tmpRoot;
+        if (tmpRoot.lessOrEqual(p, horizontal)) {
+            if (horizontal) {
+                tmpRoot.leftTree = insert(tmpRoot.leftTree, p, xmin, tmpRoot.p.y(), xmax, ymax,
+                                          false);
+            }
+            else {
+                tmpRoot.leftTree = insert(tmpRoot.leftTree, p, tmpRoot.p.x(), ymin, xmax, ymax,
+                                          true);
+            }
         }
         else {
-            tmpRoot.rightTree = insert(tmpRoot.rightTree, node, !horizontal);
-            tmpRoot.updateRect(tmpRoot.rightTree.rect);
+            if (horizontal) {
+                tmpRoot.rightTree = insert(tmpRoot.rightTree, p, xmin, ymin, xmax, tmpRoot.p.y(),
+                                           false);
+            }
+            else {
+                tmpRoot.rightTree = insert(tmpRoot.rightTree, p, xmin, ymin, tmpRoot.p.x(), ymax,
+                                           true);
+            }
         }
         return tmpRoot;
     }
@@ -84,14 +97,14 @@ public class KdTree {
     // does the set contain point p?
     public boolean contains(Point2D p) {
         if (p == null) throw new IllegalArgumentException();
-        return contains(root, new Node(p), false);
+        return contains(root, p, false);
     }
 
-    private boolean contains(Node tmpRoot, Node node, boolean horizontal) {
+    private boolean contains(Node tmpRoot, Point2D p, boolean horizontal) {
         if (tmpRoot == null) return false;
-        if (tmpRoot.p.equals(node.p)) return true;
-        if (node.less(tmpRoot, horizontal)) return contains(tmpRoot.leftTree, node, !horizontal);
-        else return contains(tmpRoot.rightTree, node, !horizontal);
+        if (tmpRoot.p.equals(p)) return true;
+        if (tmpRoot.lessOrEqual(p, horizontal)) return contains(tmpRoot.leftTree, p, !horizontal);
+        else return contains(tmpRoot.rightTree, p, !horizontal);
     }
 
     // draw all points to standard draw
@@ -125,51 +138,29 @@ public class KdTree {
     // a nearest neighbor in the set to point p; null if the set is empty
     public Point2D nearest(Point2D p) {
         if (p == null) throw new IllegalArgumentException();
-        return nearest(root, new Node(p), Double.POSITIVE_INFINITY, false);
+        return nearest(root, p, null);
     }
 
-    private Point2D nearest(Node tmpRoot, Node node, double minDis, boolean horizontal) {
-        if (tmpRoot == null || tmpRoot.rect.distanceTo(node.p) >= minDis) return null;
-        Point2D res = null;
-        double tmpDis = tmpRoot.p.distanceTo(node.p);
-        if (tmpDis < minDis) {
-            res = tmpRoot.p;
-            minDis = tmpDis;
+    private Point2D nearest(Node tmpRoot, Point2D p, Point2D min) {
+        if (tmpRoot == null) return min;
+        if (min == null) {
+            min = tmpRoot.p;
         }
-        if (node.less(tmpRoot, horizontal)) {
-            Point2D candidate = nearest(tmpRoot.leftTree, node, minDis, !horizontal);
-            if (candidate != null) {
-                res = candidate;
-                minDis = res.distanceTo(node.p);
+        if (min.distanceSquaredTo(p) >= tmpRoot.rect.distanceSquaredTo(p)) {
+            if (tmpRoot.p.distanceSquaredTo(p) < min.distanceSquaredTo(p))
+                min = tmpRoot.p;
+            if (tmpRoot.rightTree != null && tmpRoot.leftTree != null &&
+                    tmpRoot.rightTree.rect.distanceSquaredTo(p) <
+                            tmpRoot.leftTree.rect.distanceSquaredTo(p)) {
+                min = nearest(tmpRoot.rightTree, p, min);
+                min = nearest(tmpRoot.leftTree, p, min);
             }
-            if ((horizontal && Math.abs(node.p.y() - tmpRoot.p.y()) > minDis) ||
-                    (!horizontal && Math.abs(node.p.x() - tmpRoot.p.x()) > minDis))
-                return res;
             else {
-                candidate = nearest(tmpRoot.rightTree, node, minDis, !horizontal);
-                if (candidate != null) {
-                    res = candidate;
-                }
-                return res;
+                min = nearest(tmpRoot.leftTree, p, min);
+                min = nearest(tmpRoot.rightTree, p, min);
             }
         }
-        else {
-            Point2D candidate = nearest(tmpRoot.rightTree, node, minDis, !horizontal);
-            if (candidate != null) {
-                res = candidate;
-                minDis = res.distanceTo(node.p);
-            }
-            if ((horizontal && Math.abs(node.p.y() - tmpRoot.p.y()) > minDis) ||
-                    (!horizontal && Math.abs(node.p.x() - tmpRoot.p.x()) > minDis))
-                return res;
-            else {
-                candidate = nearest(tmpRoot.leftTree, node, minDis, !horizontal);
-                if (candidate != null) {
-                    res = candidate;
-                }
-                return res;
-            }
-        }
+        return min;
     }
 
     // unit testing of the methods (optional)
